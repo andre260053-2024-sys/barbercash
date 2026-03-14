@@ -256,36 +256,89 @@ function importBackup(file) {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        const transactionsFromExcel = XLSX.utils.sheet_to_json(worksheet);
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' }); // Garante que células vazias não sumam
         
-        if (!transactionsFromExcel || transactionsFromExcel.length === 0) {
+        if (!rows || rows.length === 0) {
           reject('Arquivo inválido ou vazio');
           return;
         }
 
-        // Validação básica do formato
-        if (!transactionsFromExcel[0].hasOwnProperty('amount') || !transactionsFromExcel[0].hasOwnProperty('type')) {
-           reject('Formato de planilha inválido para importação de backup.');
+        const existing = getTransactions();
+        const existingIds = new Set(existing.map(t => t.id));
+        const newTxs = [];
+        
+        // Mapea linha do excel (que pode vir inglês ou PT-BR da exportação antiga/nova)
+        for (const row of rows) {
+          // Detecta a estrutura (se foi exportada pela rotina antiga de json_to_sheet nativa)
+          // Na rotina atual de exportBackup, as chaves exportadas são: id, type, category, description, amount, professionalId...
+          // Mas se o usuário exportou pelo Relatório, são: Data, Tipo, Categoria, Descrição, Profissional, Valor (R$).
+          
+          let tx = null;
+          
+          if (row.hasOwnProperty('id') && row.hasOwnProperty('amount') && row.hasOwnProperty('type')) {
+            // É o formato de backup limpo (inglês) exportado via botão 'Exportar Backup'
+            tx = { ...row };
+          } else if (row.hasOwnProperty('Valor (R$)') || row['Valor (R$)'] !== undefined) {
+             // É o formato PT-BR exportado pelo botão 'Baixar Planilha' de relatórios
+             // Mapeando dados em PT para Inglês
+             const amt = parseFloat(row['Valor (R$)']) || 0;
+             if (amt <= 0) continue; // Pula totais do relatório
+             
+             let type = 'income';
+             if (String(row['Tipo']).toLowerCase().includes('saída' || 'saida')) type = 'expense';
+             
+             // Tentando descobrir a categoria pelo label
+             let categoryId = type === 'income' ? 'service' : 'direct_cost';
+             const catLabel = String(row['Categoria']).toLowerCase();
+             if (catLabel.includes('produto')) categoryId = 'product';
+             if (catLabel.includes('indireto')) categoryId = 'indirect_cost';
+             
+             // Descobrindo profissional
+             let profId = null;
+             const profStr = String(row['Profissional']).toLowerCase();
+             if (profStr.includes('gabriel')) profId = 'gabriel';
+             if (profStr.includes('everton')) profId = 'everton';
+             if (profStr.includes('sem nome')) profId = 'sem-nome';
+             
+             // Formatando Data
+             let dateStr = getTodayStr();
+             if (row['Data']) {
+               const parts = String(row['Data']).split('/');
+               if (parts.length === 3) dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD/MM/YYYY -> YYYY-MM-DD
+             }
+             
+             tx = {
+               id: generateId(),
+               type,
+               category: categoryId,
+               description: row['Descrição'] || '',
+               amount: amt,
+               professionalId: profId,
+               date: dateStr,
+               createdAt: new Date().toISOString()
+             };
+          }
+
+          if (tx && tx.amount) {
+            tx.amount = parseFloat(tx.amount);
+            if (tx.professionalId === 'null' || !tx.professionalId) tx.professionalId = null;
+            if (!existingIds.has(tx.id)) {
+              newTxs.push(tx);
+              existingIds.add(tx.id); // Evita duplicados na mesma planilha se houver
+            }
+          }
+        }
+
+        if (newTxs.length === 0) {
+           reject('Nenhuma transação válida e nova encontrada na planilha.');
            return;
         }
 
-        const existing = getTransactions();
-        const existingIds = new Set(existing.map(t => t.id));
-        
-        // Filtra transações novas e ajusta valores
-        const newTxs = transactionsFromExcel.filter(t => t.id && !existingIds.has(t.id));
-        newTxs.forEach(t => {
-          t.amount = parseFloat(t.amount);
-          if (t.professionalId === null || t.professionalId === undefined || t.professionalId === 'null') {
-             t.professionalId = null; 
-          }
-        });
-
         // Salvar apenas as novas no Firebase para economizar requisições
         saveTransactions(newTxs);
-        resolve({ imported: newTxs.length, total: existing.length + newTxs.length, skipped: transactionsFromExcel.length - newTxs.length });
+        resolve({ imported: newTxs.length, total: existing.length + newTxs.length, skipped: rows.length - newTxs.length });
       } catch (err) {
-        reject('Erro ao ler o arquivo Excel: ' + err.message);
+        reject('Erro ao ler XLSX: ' + err.message);
       }
     };
     reader.onerror = () => reject('Erro ao ler o arquivo');
