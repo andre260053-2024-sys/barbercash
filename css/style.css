@@ -3,18 +3,18 @@
 
 :root {
   /* Brand Colors */
-  --primary: #d4a44a;
-  --primary-light: #e8c36e;
-  --primary-dark: #b8872e;
-  --primary-glow: rgba(212, 164, 74, 0.25);
+  --primary: #007bff; /* Neon Blue */
+  --primary-light: #3395ff;
+  --primary-dark: #0056b3;
+  --primary-glow: rgba(0, 123, 255, 0.25);
 
-  /* Surfaces */
-  --bg-main: #0d0f14;
-  --bg-card: #161923;
-  --bg-card-hover: #1c2030;
-  --bg-elevated: #1e2235;
-  --bg-input: #12141c;
-  --bg-modal: rgba(0, 0, 0, 0.75);
+  /* Surfaces (Dark theme inspired by dashboard) */
+  --bg-main: #0a0e17; /* Fundo super escuro, levemente azulado */
+  --bg-card: #12182b; /* Fundo dos cards */
+  --bg-card-hover: #171f38;
+  --bg-elevated: #1a223d;
+  --bg-input: #0a0e17;
+  --bg-modal: rgba(0, 0, 0, 0.85);
 
   /* Text */
   --text-primary: #f0f0f5;
@@ -22,17 +22,17 @@
   --text-muted: #5a5e72;
 
   /* Accents */
-  --success: #34d399;
-  --success-bg: rgba(52, 211, 153, 0.12);
-  --danger: #f87171;
-  --danger-bg: rgba(248, 113, 113, 0.12);
-  --warning: #fbbf24;
-  --info: #60a5fa;
+  --success: #00e676; /* Neon Green */
+  --success-bg: rgba(0, 230, 118, 0.12);
+  --danger: #ff007f; /* Neon Pink/Red */
+  --danger-bg: rgba(255, 0, 127, 0.12);
+  --warning: #ffb300;
+  --info: #00bfff;
 
   /* Professional Colors */
-  --color-gabriel: #6366f1;
-  --color-everton: #22d3ee;
-  --color-semnome: #a78bfa;
+  --color-gabriel: #007bff; /* Azul (Combina com Receitas) */
+  --color-everton: #00e676; /* Verde (Combina com Margem) */
+  --color-semnome: #ff007f; /* Rosa/Vermelho (Combina com Despesas) */
 
   /* Spacing */
   --radius-sm: 8px;

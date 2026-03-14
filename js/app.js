@@ -393,24 +393,24 @@ function renderBarChart(report) {
         {
           label: 'Receitas',
           data: incomes,
-          backgroundColor: 'rgba(52, 211, 153, 0.8)',
-          borderColor: '#34d399',
+          backgroundColor: 'rgba(0, 123, 255, 0.8)', // Neon Blue
+          borderColor: '#007bff',
           borderWidth: 1,
           borderRadius: 4
         },
         {
           label: 'Custos',
           data: costs,
-          backgroundColor: 'rgba(248, 113, 113, 0.8)',
-          borderColor: '#f87171',
+          backgroundColor: 'rgba(255, 0, 127, 0.8)', // Neon Pink
+          borderColor: '#ff007f',
           borderWidth: 1,
           borderRadius: 4
         },
         {
           label: 'Lucro',
           data: profits,
-          backgroundColor: (ctx) => ctx.raw >= 0 ? 'rgba(212, 164, 74, 0.8)' : 'rgba(248, 113, 113, 0.4)',
-          borderColor: (ctx) => ctx.raw >= 0 ? '#d4a44a' : '#f87171',
+          backgroundColor: (ctx) => ctx.raw >= 0 ? 'rgba(0, 230, 118, 0.8)' : 'rgba(255, 0, 127, 0.4)', // Neon Green or faded Pink
+          borderColor: (ctx) => ctx.raw >= 0 ? '#00e676' : '#ff007f',
           borderWidth: 1,
           borderRadius: 4
         }
