@@ -256,7 +256,8 @@ function importBackup(file) {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' }); // Garante que células vazias não sumam
+        // raw: false força o SheetJS a retornar os dados formatados como string (ex: "14/03/2026", "106,99")
+        const rows = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: '' });
         
         if (!rows || rows.length === 0) {
           reject('Arquivo inválido ou vazio');
@@ -267,44 +268,47 @@ function importBackup(file) {
         const existingIds = new Set(existing.map(t => t.id));
         const newTxs = [];
         
-        // Mapea linha do excel (que pode vir inglês ou PT-BR da exportação antiga/nova)
-        for (const row of rows) {
-          // Detecta a estrutura (se foi exportada pela rotina antiga de json_to_sheet nativa)
-          // Na rotina atual de exportBackup, as chaves exportadas são: id, type, category, description, amount, professionalId...
-          // Mas se o usuário exportou pelo Relatório, são: Data, Tipo, Categoria, Descrição, Profissional, Valor (R$).
-          
+        for (const rawRow of rows) {
+          // Normaliza as chaves removendo espaços extras para garantir a leitura
+          const row = {};
+          for (let key in rawRow) {
+             row[key.trim()] = rawRow[key];
+          }
+
           let tx = null;
           
-          if (row.hasOwnProperty('id') && row.hasOwnProperty('amount') && row.hasOwnProperty('type')) {
-            // É o formato de backup limpo (inglês) exportado via botão 'Exportar Backup'
+          if (row['id'] && row['amount'] && row['type']) {
             tx = { ...row };
-          } else if (row.hasOwnProperty('Valor (R$)') || row['Valor (R$)'] !== undefined) {
-             // É o formato PT-BR exportado pelo botão 'Baixar Planilha' de relatórios
-             // Mapeando dados em PT para Inglês
-             const amt = parseFloat(row['Valor (R$)']) || 0;
-             if (amt <= 0) continue; // Pula totais do relatório
+            tx.amount = parseFloat(String(tx.amount).replace(/[^0-9.-]+/g,""));
+          } else if (row['Valor (R$)'] !== undefined || row['Valor'] !== undefined) {
+             const valKey = row['Valor (R$)'] !== undefined ? 'Valor (R$)' : 'Valor';
+             
+             // Limpa o valor (troca vírgula por ponto, tira R$)
+             let valStr = String(row[valKey]).replace('R$', '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.').trim();
+             const amt = parseFloat(valStr) || 0;
+             if (amt <= 0) continue; 
              
              let type = 'income';
-             if (String(row['Tipo']).toLowerCase().includes('saída' || 'saida')) type = 'expense';
+             const tipoStr = String(row['Tipo']).toLowerCase();
+             if (tipoStr.includes('saíd') || tipoStr.includes('said')) type = 'expense';
              
-             // Tentando descobrir a categoria pelo label
              let categoryId = type === 'income' ? 'service' : 'direct_cost';
              const catLabel = String(row['Categoria']).toLowerCase();
              if (catLabel.includes('produto')) categoryId = 'product';
              if (catLabel.includes('indireto')) categoryId = 'indirect_cost';
              
-             // Descobrindo profissional
              let profId = null;
              const profStr = String(row['Profissional']).toLowerCase();
              if (profStr.includes('gabriel')) profId = 'gabriel';
              if (profStr.includes('everton')) profId = 'everton';
              if (profStr.includes('sem nome')) profId = 'sem-nome';
              
-             // Formatando Data
              let dateStr = getTodayStr();
-             if (row['Data']) {
-               const parts = String(row['Data']).split('/');
-               if (parts.length === 3) dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD/MM/YYYY -> YYYY-MM-DD
+             const dStr = String(row['Data']).trim();
+             if (dStr) {
+               const parts = dStr.split('/');
+               if (parts.length === 3) dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+               else dateStr = dStr; // Se vier num formato diferente, usa como veio
              }
              
              tx = {
@@ -324,7 +328,7 @@ function importBackup(file) {
             if (tx.professionalId === 'null' || !tx.professionalId) tx.professionalId = null;
             if (!existingIds.has(tx.id)) {
               newTxs.push(tx);
-              existingIds.add(tx.id); // Evita duplicados na mesma planilha se houver
+              existingIds.add(tx.id); 
             }
           }
         }
