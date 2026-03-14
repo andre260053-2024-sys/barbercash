@@ -1,7 +1,18 @@
-// ===== BarberCash - Data Layer =====
-// localStorage-based persistence with CRUD operations
+// ===== BarberCash - Data Layer (Firebase) =====
 
-const STORAGE_KEY = 'barbercash_transactions';
+const firebaseConfig = {
+  apiKey: "AIzaSyDOwLXRyXsP3ekdzxJpFZVi9awq_zQYwXs",
+  authDomain: "barbercash-680fd.firebaseapp.com",
+  projectId: "barbercash-680fd",
+  storageBucket: "barbercash-680fd.firebasestorage.app",
+  messagingSenderId: "470125229013",
+  appId: "1:470125229013:web:943db79ba0d5774e79435c",
+  measurementId: "G-JN0WLCC51G"
+};
+
+// Inicializa Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 const Professionals = [
   { id: 'gabriel', name: 'Gabriel', initials: 'GA', color: '#6366f1' },
@@ -25,65 +36,70 @@ function generateId() {
   return 'tx_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
 }
 
+// Local state for transactions synced with Firebase
+let localTransactions = [];
+
+// Listener em tempo real do Firestore
+db.collection("transactions").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+  localTransactions = [];
+  snapshot.forEach((doc) => {
+    localTransactions.push({ id: doc.id, ...doc.data() });
+  });
+  
+  // Atualiza a UI se as funções do app.js já estiverem carregadas
+  if (typeof renderHistory === 'function') {
+    renderHistory();
+  }
+  if (typeof reportGenerated !== 'undefined' && reportGenerated && typeof generateReport === 'function') {
+    generateReport();
+  }
+});
+
 // Get all transactions
 function getTransactions() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    console.error('Error reading transactions:', e);
-    return [];
-  }
+  return localTransactions;
 }
 
-// Save all transactions
+// Save all (usado apenas pro importBackup)
 function saveTransactions(transactions) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
-  } catch (e) {
-    console.error('Error saving transactions:', e);
-  }
+  transactions.forEach(tx => {
+    const id = tx.id || generateId();
+    db.collection("transactions").doc(id).set(tx);
+  });
 }
 
 // Add a transaction
 function addTransaction(tx) {
   const transaction = {
-    id: generateId(),
-    type: tx.type, // 'income' or 'expense'
-    category: tx.category, // 'service', 'product', 'direct_cost', 'indirect_cost'
+    type: tx.type,
+    category: tx.category,
     description: tx.description || '',
     amount: parseFloat(tx.amount),
     professionalId: tx.professionalId || null,
     date: tx.date || getTodayStr(),
     createdAt: new Date().toISOString()
   };
-  const transactions = getTransactions();
-  transactions.unshift(transaction);
-  saveTransactions(transactions);
-  return transaction;
+  const id = generateId();
+  db.collection("transactions").doc(id).set(transaction);
+  return { id, ...transaction };
 }
 
 // Update a transaction
 function updateTransaction(id, updates) {
-  const transactions = getTransactions();
-  const index = transactions.findIndex(t => t.id === id);
-  if (index === -1) return null;
-  transactions[index] = { ...transactions[index], ...updates };
-  saveTransactions(transactions);
-  return transactions[index];
+  db.collection("transactions").doc(id).update(updates);
+  return { id, ...updates };
 }
 
 // Delete a transaction
 function deleteTransaction(id) {
-  const transactions = getTransactions();
-  const filtered = transactions.filter(t => t.id !== id);
-  saveTransactions(filtered);
-  return filtered;
+  db.collection("transactions").doc(id).delete();
 }
 
 // Clear all transactions
 function clearAllTransactions() {
-  localStorage.removeItem(STORAGE_KEY);
+  localTransactions.forEach(tx => {
+    db.collection("transactions").doc(tx.id).delete();
+  });
 }
 
 // Get today's date as YYYY-MM-DD
