@@ -15,9 +15,9 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const Professionals = [
-  { id: 'gabriel', name: 'Gabriel', initials: 'GA', color: '#6366f1' },
-  { id: 'everton', name: 'Everton', initials: 'EV', color: '#22d3ee' },
-  { id: 'sem-nome', name: 'Sem Nome', initials: 'SN', color: '#a78bfa' }
+  { id: 'gabriel', name: 'Gabriel', initials: 'GA', color: '#7c3aed' }, // Roxo vibrante
+  { id: 'everton', name: 'Everton', initials: 'EV', color: '#06b6d4' }, // Ciano vibrante
+  { id: 'sem-nome', name: 'Sem Nome', initials: 'SN', color: '#a78bfa' } // Lilás suave
 ];
 
 const Categories = {

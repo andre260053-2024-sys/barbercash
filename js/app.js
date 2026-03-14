@@ -253,6 +253,7 @@ function executeClearHistory() {
 }
 
 // ===== Reports =====
+Chart.register(ChartDataLabels); // Registra plugin globalmente
 let pieChart = null;
 let barChart = null;
 
@@ -322,10 +323,8 @@ function renderPieChart(report) {
       datasets: [{
         data,
         backgroundColor: colors,
-        borderColor: '#161923',
-        borderWidth: 3,
-        hoverBorderWidth: 0,
-        hoverOffset: 8
+        borderWidth: 0,
+        hoverOffset: 12
       }]
     },
     options: {
@@ -354,8 +353,22 @@ function renderPieChart(report) {
           titleFont: { family: 'Inter', weight: '600' },
           bodyFont: { family: 'Inter' },
           callbacks: {
-            label: ctx => `${ctx.label}: ${formatMoney(ctx.raw)}`
+            label: ctx => ` ${ctx.label}: ${formatMoney(ctx.raw)}`
           }
+        },
+        datalabels: {
+          color: '#ffffff',
+          font: { family: 'Inter', weight: 'bold', size: 13 },
+          formatter: (value, ctx) => {
+             if (value === 0) return '';
+             let sum = 0;
+             let dataArr = ctx.chart.data.datasets[0].data;
+             dataArr.map(data => { sum += data; });
+             let percentage = (value * 100 / sum).toFixed(1) + "%";
+             return percentage;
+          },
+          textShadowBlur: 4,
+          textShadowColor: 'rgba(0,0,0,0.5)'
         }
       }
     }
@@ -405,8 +418,20 @@ function renderBarChart(report) {
           titleFont: { family: 'Inter', weight: '600' },
           bodyFont: { family: 'Inter' },
           callbacks: {
-            label: ctx => formatMoney(ctx.raw)
+            label: ctx => ` ${formatMoney(ctx.raw)}`
           }
+        },
+        datalabels: {
+          anchor: 'end',
+          align: 'end',
+          offset: 4,
+          color: (ctx) => {
+             // A cor do label de lucro fica vermelha se for negativo
+             if (ctx.dataIndex === 2 && ctx.dataset.data[2] < 0) return '#f87171';
+             return '#e0e2ed';
+          },
+          font: { family: 'Inter', weight: 'bold', size: 12 },
+          formatter: (value) => formatMoney(value)
         }
       },
       scales: {
@@ -423,7 +448,9 @@ function renderBarChart(report) {
             color: '#5a5e72',
             font: { family: 'Inter', size: 11 },
             callback: v => 'R$ ' + v.toLocaleString('pt-BR')
-          }
+          },
+          // Aumenta o teto sutilmente para os rótulos não cortarem no topo
+          suggestedMax: report.totalIncome * 1.15 
         }
       }
     }
