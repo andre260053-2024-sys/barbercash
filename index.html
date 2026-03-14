@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0f14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="BarberCash — Gestão financeira e fluxo de caixa para barbearias">
+  <title>BarberCash — Gestão Financeira</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <!-- SheetJS (XLSX) via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- ===== Header ===== -->
+    <header class="app-header">
+      <div class="app-logo">✂️</div>
+      <div>
+        <div class="app-title">BarberCash</div>
+        <div class="app-subtitle">Gestão Financeira</div>
+      </div>
+    </header>
+
+    <!-- ===== Content Area ===== -->
+    <main class="app-content">
+
+      <!-- ===== PAGE: ENTRADAS ===== -->
+      <div id="page-income" class="page active">
+        <div class="card">
+          <div class="card-header">
+            <span class="icon">💰</span> Registrar Entrada
+          </div>
+
+          <form id="incomeForm">
+            <!-- Type Pills -->
+            <div class="type-selector">
+              <button type="button" class="type-pill active" data-value="service">✂️ Serviço</button>
+              <button type="button" class="type-pill" data-value="product">🧴 Produto</button>
+            </div>
+
+            <!-- Amount -->
+            <div class="form-group">
+              <label class="form-label">Valor</label>
+              <div class="input-prefix">
+                <input type="number" id="incomeAmount" class="form-input" placeholder="0,00" step="0.01" min="0.01" required inputmode="decimal">
+              </div>
+            </div>
+
+            <!-- Professional -->
+            <div class="form-group">
+              <label class="form-label">Profissional</label>
+              <select id="incomeProfessional" class="form-select" required>
+                <option value="">Selecione...</option>
+                <option value="gabriel">👤 Gabriel</option>
+                <option value="everton">👤 Everton</option>
+                <option value="sem-nome">🏪 Sem Nome (Caixa Geral)</option>
+              </select>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+              <label class="form-label">Descrição (opcional)</label>
+              <input type="text" id="incomeDescription" class="form-input" placeholder="Ex: Corte + barba, Pomada XYZ...">
+            </div>
+
+            <!-- Date -->
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <input type="date" id="incomeDate" class="form-input" required>
+            </div>
+
+            <button type="submit" class="btn btn-success">
+              <span>💰</span> Registrar Entrada
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: SAÍDAS ===== -->
+      <div id="page-expense" class="page">
+        <div class="card">
+          <div class="card-header">
+            <span class="icon">📉</span> Registrar Saída
+          </div>
+
+          <form id="expenseForm">
+            <!-- Type Pills -->
+            <div class="type-selector">
+              <button type="button" class="type-pill active" data-value="direct_cost">🪒 Custo Direto</button>
+              <button type="button" class="type-pill" data-value="indirect_cost">🏠 Custo Indireto</button>
+            </div>
+
+            <!-- Amount -->
+            <div class="form-group">
+              <label class="form-label">Valor</label>
+              <div class="input-prefix">
+                <input type="number" id="expenseAmount" class="form-input" placeholder="0,00" step="0.01" min="0.01" required inputmode="decimal">
+              </div>
+            </div>
+
+            <!-- Professional (optional) -->
+            <div class="form-group">
+              <label class="form-label">Profissional (opcional)</label>
+              <select id="expenseProfessional" class="form-select">
+                <option value="">Sem vínculo (dividir entre todos)</option>
+                <option value="gabriel">👤 Gabriel</option>
+                <option value="everton">👤 Everton</option>
+                <option value="sem-nome">🏪 Sem Nome</option>
+              </select>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+              <label class="form-label">Descrição</label>
+              <input type="text" id="expenseDescription" class="form-input" placeholder="Ex: Aluguel, Lâminas, Energia...">
+            </div>
+
+            <!-- Date -->
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <input type="date" id="expenseDate" class="form-input" required>
+            </div>
+
+            <button type="submit" class="btn btn-danger" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none;">
+              <span>📉</span> Registrar Saída
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: RELATÓRIOS ===== -->
+      <div id="page-reports" class="page">
+        <!-- Generate Button -->
+        <button class="btn btn-report" onclick="generateReport()">
+          📊 Gerar Relatório de Custos e Lucro
+        </button>
+
+        <!-- Period Filter -->
+        <div class="period-filter">
+          <button class="period-btn" data-period="day">Dia</button>
+          <button class="period-btn" data-period="week">Semana</button>
+          <button class="period-btn active" data-period="month">Mês</button>
+        </div>
+
+        <!-- Reference Date -->
+        <div class="form-group mb-16">
+          <label class="form-label">Data de Referência</label>
+          <input type="date" id="reportDate" class="form-input">
+        </div>
+
+        <!-- Report Results (initially hidden) -->
+        <div id="reportResults" class="hidden">
+          <!-- Summary Stats -->
+          <div class="stats-grid mb-16">
+            <div class="stat-card">
+              <div class="stat-label">Receita</div>
+              <div class="stat-value income" id="statIncome">R$ 0,00</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Custos</div>
+              <div class="stat-value expense" id="statExpense">R$ 0,00</div>
+            </div>
+            <div class="stat-card highlight">
+              <div class="stat-label">Lucro</div>
+              <div class="stat-value profit" id="statProfit">R$ 0,00</div>
+            </div>
+          </div>
+
+          <!-- Professional Breakdown -->
+          <div class="section-title">
+            <span>👥</span> Visão por Profissional
+          </div>
+          <div id="profsContainer" class="mb-20"></div>
+
+          <!-- Pie Chart -->
+          <div class="chart-container">
+            <div class="chart-title">📊 Receita por Profissional</div>
+            <div class="chart-wrapper">
+              <canvas id="pieChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Bar Chart -->
+          <div class="chart-container">
+            <div class="chart-title">📈 Receitas vs Custos</div>
+            <div class="chart-wrapper">
+              <canvas id="barChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Export Button -->
+          <button class="btn btn-primary mt-12" onclick="exportReport()">
+            📥 Baixar Planilha (Exportar Relatório)
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: HISTÓRICO ===== -->
+      <div id="page-history" class="page">
+        <div class="flex-between mb-12">
+          <div class="section-title" style="margin-bottom: 0;">
+            <span>📋</span> Histórico
+          </div>
+          <span id="historyCount" style="font-size: 0.72rem; color: var(--text-muted);">0 transações</span>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-row mb-12">
+          <select id="historyFilterType" class="form-select">
+            <option value="all">Todas</option>
+            <option value="income">Entradas</option>
+            <option value="expense">Saídas</option>
+          </select>
+        </div>
+
+        <!-- Transaction List -->
+        <ul id="historyList" class="tx-list"></ul>
+
+        <!-- Actions -->
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <button class="btn btn-danger" onclick="confirmClearHistory()">
+            🗑️ Limpar Histórico
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== Bottom Navigation ===== -->
+    <nav class="bottom-nav">
+      <div class="bottom-nav-inner">
+        <button class="nav-btn active" data-tab="income">
+          <span class="nav-icon">💰</span>
+          <span>Entradas</span>
+        </button>
+        <button class="nav-btn" data-tab="expense">
+          <span class="nav-icon">📉</span>
+          <span>Saídas</span>
+        </button>
+        <button class="nav-btn" data-tab="reports">
+          <span class="nav-icon">📊</span>
+          <span>Relatórios</span>
+        </button>
+        <button class="nav-btn" data-tab="history">
+          <span class="nav-icon">📋</span>
+          <span>Histórico</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ===== Edit Modal ===== -->
+    <div id="editModal" class="modal-overlay hidden" onclick="if(event.target===this)closeEditModal()">
+      <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title">✏️ Editar Transação</div>
+
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select id="editType" class="form-select">
+            <option value="income">Entrada</option>
+            <option value="expense">Saída</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <select id="editCategory" class="form-select">
+            <option value="service">Serviço</option>
+            <option value="product">Produto</option>
+            <option value="direct_cost">Custo Direto</option>
+            <option value="indirect_cost">Custo Indireto</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Valor</label>
+          <div class="input-prefix">
+            <input type="number" id="editAmount" class="form-input" step="0.01" min="0.01" required inputmode="decimal">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Descrição</label>
+          <input type="text" id="editDescription" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input type="date" id="editDate" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Profissional</label>
+          <select id="editProfessional" class="form-select">
+            <option value="">Nenhum</option>
+            <option value="gabriel">Gabriel</option>
+            <option value="everton">Everton</option>
+            <option value="sem-nome">Sem Nome</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" onclick="closeEditModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveEdit()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Clear History Modal ===== -->
+    <div id="clearModal" class="modal-overlay hidden" onclick="if(event.target===this)closeClearModal()">
+      <div class="modal">
+        <div class="modal-handle"></div>
+        <div class="modal-title">⚠️ Limpar Histórico</div>
+        <p style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+          Tem certeza que deseja <strong style="color: var(--danger);">apagar todos os registros</strong>?<br>
+          Esta ação não pode ser desfeita.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-outline" onclick="closeClearModal()">Cancelar</button>
+          <button class="btn btn-danger" onclick="executeClearHistory()">Sim, Limpar Tudo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Toast Container ===== -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
