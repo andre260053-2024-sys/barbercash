@@ -380,33 +380,51 @@ function renderBarChart(report) {
 
   if (barChart) barChart.destroy();
 
+  const labels = [...Professionals.map(p => p.name), 'Geral'];
+  const incomes = [...Professionals.map(p => report.profData[p.id].income), report.totalIncome];
+  const costs = [...Professionals.map(p => report.profData[p.id].directCosts + report.profData[p.id].proportionalCosts), report.totalExpenses];
+  const profits = [...Professionals.map(p => report.profData[p.id].profit), report.profit];
+
   barChart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Receitas', 'Custos', 'Lucro'],
-      datasets: [{
-        data: [report.totalIncome, report.totalExpenses, report.profit],
-        backgroundColor: [
-          'rgba(52, 211, 153, 0.8)',
-          'rgba(248, 113, 113, 0.8)',
-          report.profit >= 0 ? 'rgba(212, 164, 74, 0.8)' : 'rgba(248, 113, 113, 0.5)'
-        ],
-        borderColor: [
-          '#34d399',
-          '#f87171',
-          report.profit >= 0 ? '#d4a44a' : '#f87171'
-        ],
-        borderWidth: 2,
-        borderRadius: 8,
-        borderSkipped: false,
-        barPercentage: 0.6
-      }]
+      labels: labels,
+      datasets: [
+        {
+          label: 'Receitas',
+          data: incomes,
+          backgroundColor: 'rgba(52, 211, 153, 0.8)',
+          borderColor: '#34d399',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Custos',
+          data: costs,
+          backgroundColor: 'rgba(248, 113, 113, 0.8)',
+          borderColor: '#f87171',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Lucro',
+          data: profits,
+          backgroundColor: (ctx) => ctx.raw >= 0 ? 'rgba(212, 164, 74, 0.8)' : 'rgba(248, 113, 113, 0.4)',
+          borderColor: (ctx) => ctx.raw >= 0 ? '#d4a44a' : '#f87171',
+          borderWidth: 1,
+          borderRadius: 4
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: '#8b8fa3', font: { family: 'Inter', size: 11 }, usePointStyle: true, pointStyleWidth: 12, padding: 20 }
+        },
         tooltip: {
           backgroundColor: '#1e2235',
           titleColor: '#f0f0f5',
@@ -418,20 +436,27 @@ function renderBarChart(report) {
           titleFont: { family: 'Inter', weight: '600' },
           bodyFont: { family: 'Inter' },
           callbacks: {
-            label: ctx => ` ${formatMoney(ctx.raw)}`
+            label: ctx => ` ${ctx.dataset.label}: ${formatMoney(ctx.raw)}`
           }
         },
         datalabels: {
           anchor: 'end',
           align: 'end',
-          offset: 4,
+          offset: 2,
           color: (ctx) => {
-             // A cor do label de lucro fica vermelha se for negativo
-             if (ctx.dataIndex === 2 && ctx.dataset.data[2] < 0) return '#f87171';
+             if (ctx.datasetIndex === 2 && ctx.raw < 0) return '#f87171';
              return '#e0e2ed';
           },
-          font: { family: 'Inter', weight: 'bold', size: 12 },
-          formatter: (value) => formatMoney(value)
+          font: { family: 'Inter', weight: 'bold', size: 9 },
+          formatter: (value) => {
+            if (value === 0) return '';
+            // Formatação compacta para evitar que os números de barras diferentes se sobreponham
+            // Ex: 1000 -> 1k, 1500 -> 1.5k, etc
+            if (Math.abs(value) >= 1000) {
+              return (value / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 }) + 'k';
+            }
+            return Math.round(value).toString();
+          }
         }
       },
       scales: {
@@ -439,17 +464,16 @@ function renderBarChart(report) {
           grid: { display: false },
           ticks: {
             color: '#8b8fa3',
-            font: { family: 'Inter', size: 12, weight: '600' }
+            font: { family: 'Inter', size: 10, weight: '600' }
           }
         },
         y: {
           grid: { color: 'rgba(255,255,255,0.04)' },
           ticks: {
             color: '#5a5e72',
-            font: { family: 'Inter', size: 11 },
+            font: { family: 'Inter', size: 10 },
             callback: v => 'R$ ' + v.toLocaleString('pt-BR')
           },
-          // Aumenta o teto sutilmente para os rótulos não cortarem no topo
           suggestedMax: report.totalIncome * 1.15 
         }
       }
