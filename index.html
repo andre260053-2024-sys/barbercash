@@ -221,7 +221,16 @@
         <ul id="historyList" class="tx-list"></ul>
 
         <!-- Actions -->
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="handleExportBackup()" style="flex: 1;">
+              💾 Exportar Backup
+            </button>
+            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()" style="flex: 1;">
+              📂 Importar Backup
+            </button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImportBackup(this)">
+          </div>
           <button class="btn btn-danger" onclick="confirmClearHistory()">
             🗑️ Limpar Histórico
           </button>

@@ -217,3 +217,49 @@ function calculateReport(transactions) {
     expenseCount: transactions.filter(t => t.type === 'expense').length
   };
 }
+
+// ===== Backup & Restore =====
+function exportBackup() {
+  const transactions = getTransactions();
+  if (transactions.length === 0) return null;
+  const backup = {
+    app: 'BarberCash',
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    transactions
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `barbercash_backup_${getTodayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+function importBackup(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.transactions || !Array.isArray(data.transactions)) {
+          reject('Arquivo inválido: não contém transações');
+          return;
+        }
+        const existing = getTransactions();
+        const existingIds = new Set(existing.map(t => t.id));
+        const newTxs = data.transactions.filter(t => !existingIds.has(t.id));
+        const merged = [...newTxs, ...existing];
+        merged.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        saveTransactions(merged);
+        resolve({ imported: newTxs.length, total: merged.length, skipped: data.transactions.length - newTxs.length });
+      } catch (err) {
+        reject('Erro ao ler o arquivo: ' + err.message);
+      }
+    };
+    reader.onerror = () => reject('Erro ao ler o arquivo');
+    reader.readAsText(file);
+  });
+}

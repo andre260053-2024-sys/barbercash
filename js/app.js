@@ -495,6 +495,34 @@ function exportReport() {
   }
 }
 
+// ===== Backup Handlers =====
+function handleExportBackup() {
+  const result = exportBackup();
+  if (result) {
+    showToast('Backup exportado com sucesso! 💾');
+  } else {
+    showToast('Não há dados para exportar', 'error');
+  }
+}
+
+function handleImportBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  importBackup(file).then(result => {
+    showToast(`${result.imported} transações importadas! 📂`);
+    if (result.skipped > 0) {
+      setTimeout(() => showToast(`${result.skipped} já existiam (ignoradas)`, 'info'), 500);
+    }
+    renderHistory();
+    reportGenerated = false;
+  }).catch(err => {
+    showToast(err, 'error');
+  });
+  
+  input.value = '';
+}
+
 // ===== Initialization =====
 function init() {
   setupIncomeForm();
